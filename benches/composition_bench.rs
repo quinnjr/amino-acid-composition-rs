@@ -1,6 +1,8 @@
 //! Benchmarks for AminoAcidComposition using Criterion v0.8.0
 
-use amino_acid_composition_rs::{compute_composition, compute_composition_fast, AminoAcidCompositionPlugin};
+use amino_acid_composition_rs::{
+    compute_composition, compute_composition_fast, AminoAcidCompositionPlugin,
+};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
 
@@ -109,5 +111,10 @@ fn bench_parallel_vs_sequential(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_composition_single, bench_full_pipeline, bench_parallel_vs_sequential);
+criterion_group!(
+    benches,
+    bench_composition_single,
+    bench_full_pipeline,
+    bench_parallel_vs_sequential
+);
 criterion_main!(benches);

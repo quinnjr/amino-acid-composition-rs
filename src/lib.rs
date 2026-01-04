@@ -153,11 +153,7 @@ fn aa_to_index(aa: char) -> Option<usize> {
 #[inline(always)]
 fn aa_byte_to_index(b: u8) -> Option<usize> {
     // Convert to uppercase
-    let b = if b >= b'a' && b <= b'z' {
-        b - 32
-    } else {
-        b
-    };
+    let b = if b >= b'a' && b <= b'z' { b - 32 } else { b };
 
     match b {
         b'A' => Some(0),
@@ -266,7 +262,11 @@ impl AminoAcidCompositionPlugin {
 
         writeln!(file, "Overall Composition:")?;
         writeln!(file, "--------------------")?;
-        writeln!(file, "{:>3} {:>15} {:>10} {:>8}", "AA", "Name", "Count", "%")?;
+        writeln!(
+            file,
+            "{:>3} {:>15} {:>10} {:>8}",
+            "AA", "Name", "Count", "%"
+        )?;
 
         for (i, &aa) in AMINO_ACIDS.iter().enumerate() {
             let count = self.overall.counts[i];
