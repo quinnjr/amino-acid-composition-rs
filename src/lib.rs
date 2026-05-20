@@ -3,7 +3,10 @@
 //! This plugin analyzes protein sequences in FASTA format and computes
 //! the amino acid composition (frequency of each amino acid).
 
+use pluma_plugin_trait::PluMAPlugin;
 use rayon::prelude::*;
+use std::ffi::CStr;
+use std::os::raw::c_char;
 use std::path::Path;
 
 /// The 20 standard amino acids
@@ -410,6 +413,84 @@ pub fn compute_composition_fast(sequence: &[u8]) -> Composition {
     }
 
     comp
+}
+
+// ---------------------------------------------------------------------------
+// PluMA plugin contract (pluma-plugin-trait + dlsym-resolved FFI shims)
+// ---------------------------------------------------------------------------
+
+impl PluMAPlugin for AminoAcidCompositionPlugin {
+    fn input(&mut self, filepath: String) -> Result<(), Box<dyn std::error::Error>> {
+        AminoAcidCompositionPlugin::input(self, &filepath)
+    }
+    fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        AminoAcidCompositionPlugin::run(self);
+        Ok(())
+    }
+    fn output(&mut self, filepath: String) -> Result<(), Box<dyn std::error::Error>> {
+        AminoAcidCompositionPlugin::output(self, &filepath)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn AminoAcidComposition_plugin_create() -> *mut std::ffi::c_void {
+    Box::into_raw(Box::new(AminoAcidCompositionPlugin::new())) as *mut std::ffi::c_void
+}
+
+#[no_mangle]
+pub extern "C" fn AminoAcidComposition_plugin_destroy(ptr: *mut std::ffi::c_void) {
+    if !ptr.is_null() {
+        unsafe {
+            let _ = Box::from_raw(ptr as *mut AminoAcidCompositionPlugin);
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn AminoAcidComposition_plugin_input(
+    ptr: *mut std::ffi::c_void,
+    filename: *const c_char,
+) {
+    if ptr.is_null() || filename.is_null() {
+        return;
+    }
+    unsafe {
+        let plugin = &mut *(ptr as *mut AminoAcidCompositionPlugin);
+        let s = CStr::from_ptr(filename).to_str().unwrap_or("").to_string();
+        if let Err(e) = <AminoAcidCompositionPlugin as PluMAPlugin>::input(plugin, s) {
+            eprintln!("[AminoAcidComposition] input error: {e}");
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn AminoAcidComposition_plugin_run(ptr: *mut std::ffi::c_void) {
+    if ptr.is_null() {
+        return;
+    }
+    unsafe {
+        let plugin = &mut *(ptr as *mut AminoAcidCompositionPlugin);
+        if let Err(e) = <AminoAcidCompositionPlugin as PluMAPlugin>::run(plugin) {
+            eprintln!("[AminoAcidComposition] run error: {e}");
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn AminoAcidComposition_plugin_output(
+    ptr: *mut std::ffi::c_void,
+    filename: *const c_char,
+) {
+    if ptr.is_null() || filename.is_null() {
+        return;
+    }
+    unsafe {
+        let plugin = &mut *(ptr as *mut AminoAcidCompositionPlugin);
+        let s = CStr::from_ptr(filename).to_str().unwrap_or("").to_string();
+        if let Err(e) = <AminoAcidCompositionPlugin as PluMAPlugin>::output(plugin, s) {
+            eprintln!("[AminoAcidComposition] output error: {e}");
+        }
+    }
 }
 
 #[cfg(test)]
